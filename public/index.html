@@ -110,27 +110,27 @@ const dpr=Math.min(devicePixelRatio||1,2),fa=n=>Number(n).toLocaleString('fa');
 const toast=t=>{const m=$('#msg');m.textContent=t;m.style.opacity=1;clearTimeout(toast.t);toast.t=setTimeout(()=>m.style.opacity=0,1800)};
 const DB=new Promise((res,rej)=>{const r=indexedDB.open('studynotes',1);r.onupgradeneeded=()=>{r.result.createObjectStore('books',{keyPath:'id'});r.result.createObjectStore('ink')};r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)});
 const idb=async(st,mode,fn)=>{const d=await DB;return new Promise((res,rej)=>{const t=d.transaction(st,mode),q=fn(t.objectStore(st));t.oncomplete=()=>res(q&&q.result);t.onerror=()=>rej(t.error)})};
-const wr=()=>key&&pages.length?idb('ink','readwrite',o=>o.put({pages,strokes,cur},key)).catch(()=>toast('ذخیره نشد')):0;
-let st;const save=()=>{clearTimeout(st);st=setTimeout(wr,400)};
+const wr=()=>key&&pages.length?idb('ink','readwrite',o=>o.put({pages,strokes,cur,dv:[...dv],md,since},key)).catch(()=>toast('ذخیره نشد')):0;
+let st;const save=()=>{clearTimeout(st);st=setTimeout(wr,400);queuePush()};
 document.addEventListener('visibilitychange',()=>{if(document.hidden)wr()});
 try{navigator.storage&&navigator.storage.persist&&navigator.storage.persist()}catch(_){}
 const pgW=()=>Math.round((main.clientWidth-16)*zoom);
 
 $('#f').onchange=async e=>{
   const fs=[...e.target.files];let last;toast('در حال افزودن…');
-  for(const f of fs){last=crypto.randomUUID();await idb('books','readwrite',o=>o.put({id:last,name:f.name,size:f.size,added:Date.now(),blob:f}))}
-  e.target.value='';if(fs.length==1)openBook(last);else showLib();
+  for(const f of fs){last=crypto.randomUUID();await idb('books','readwrite',o=>o.put({id:last,name:f.name,size:f.size,added:Date.now(),blob:f,synced:0}))}
+  e.target.value='';if(fs.length==1)openBook(last);else showLib();syncBooks();
 };
 async function openBook(id){
   try{
     toast('در حال بارگذاری…');
     const b=await idb('books','readonly',o=>o.get(id));
-    const doc=await pdfjsLib.getDocument({data:await b.blob.arrayBuffer()}).promise;
+    if(!b.blob)await download(b);const doc=await pdfjsLib.getDocument({data:await b.blob.arrayBuffer()}).promise;
     const v=(await doc.getPage(1)).getViewport({scale:1}),sv=await idb('ink','readonly',o=>o.get(id));
     await wr();pdf=doc;key=id;ratio=v.height/v.width;
     pages=(sv&&sv.pages)||Array.from({length:pdf.numPages},(_,i)=>({id:'p'+(i+1),n:i+1}));
-    strokes=(sv&&sv.strokes)||{};ops=[];redoS=[];zoom=1;rat={};cur=0;
-    document.body.classList.remove('lib');build();prefetch();localStorage.setItem('last',id);
+    strokes=(sv&&sv.strokes)||{};dv=new Map((sv&&sv.dv)||[]);md=(sv&&sv.md)||0;since=(sv&&sv.since)||0;ops=[];redoS=[];zoom=1;rat={};cur=0;
+    document.body.classList.remove('lib');build();prefetch();pull();localStorage.setItem('last',id);
     if(sv&&sv.cur)setTimeout(()=>jump(sv.cur),50);
   }catch(err){toast('فایل باز نشد');showLib()}
 }
@@ -142,9 +142,9 @@ async function showLib(){
   L.forEach(b=>{
     const d=document.createElement('div');d.className='bk';
     d.innerHTML='<div class="bn"></div><div class="bm"></div><button class="b main">باز کردن</button><button class="b">حذف</button>';
-    d.querySelector('.bn').textContent=b.name;d.querySelector('.bm').textContent=fa((b.size/1048576).toFixed(1))+' مگ';
+    d.querySelector('.bn').textContent=b.name;d.querySelector('.bm').textContent=fa((b.size/1048576).toFixed(1))+' مگ'+(b.blob?(b.synced?'':' (فقط روی این دستگاه)'):' (ابری، با باز کردن دانلود می‌شود)');
     const[o,x]=d.querySelectorAll('button');o.onclick=()=>openBook(b.id);
-    x.onclick=async()=>{if(confirm('«'+b.name+'» و نوشته‌هایش حذف شود؟')){await idb('books','readwrite',t=>t.delete(b.id));await idb('ink','readwrite',t=>t.delete(b.id));if(key===b.id){key='';pages=[]}showLib()}};
+    x.onclick=async()=>{if(confirm('«'+b.name+'» و نوشته‌هایش حذف شود؟')){if(cloud){try{await api('/books/'+b.id,{method:'DELETE'})}catch(_){toast('برای حذف باید آنلاین باشی');return}}await idb('books','readwrite',t=>t.delete(b.id));await idb('ink','readwrite',t=>t.delete(b.id));if(key===b.id){key='';pages=[]}showLib()}};
     lib.appendChild(d);
   });
 }
@@ -259,11 +259,11 @@ function bind(cv,el){
   };
   cv.onpointerup=cv.onpointercancel=cv.onlostpointercapture=finish;
 }
-function commit(o){ops.push(o);redoS=[];save();refresh()}
+function commit(o){ops.push(o);redoS=[];dirty(o.id);save();refresh()}
 function apply(o,rev){
   const add=rev?o.rem:o.add,rem=rev?o.add:o.rem;
   strokes[o.id]=(strokes[o.id]||[]).filter(x=>!rem.includes(x)).concat(add);
-  const el=els[pages.findIndex(p=>p.id===o.id)];if(el)drawInk(el);save();
+  const el=els[pages.findIndex(p=>p.id===o.id)];if(el)drawInk(el);dirty(o.id);save();
 }
 const undo=()=>{const o=ops.pop();if(o){apply(o,true);redoS.push(o);refresh()}};
 const redo=()=>{const o=redoS.pop();if(o){apply(o,false);ops.push(o);refresh()}};
@@ -325,10 +325,10 @@ $('#zp').onclick=()=>pages.length&&zoomTo(1,main.scrollLeft,main.scrollTop,0,0);
 let rw=main.clientWidth;addEventListener('resize',()=>{if(pages.length&&Math.abs(main.clientWidth-rw)>40){rw=main.clientWidth;build()}});
 
 $('#addb').onclick=()=>{
-  if(!pages.length)return;pages.splice(cur+1,0,{id:'b'+Date.now()});save();build();jump(cur+1);toast('برگه خالی اضافه شد');
+  if(!pages.length)return;pages.splice(cur+1,0,{id:'b'+Date.now()});md++;save();build();jump(cur+1);toast('برگه خالی اضافه شد');
 };
 $('#delb').onclick=()=>{
-  if(pages[cur]&&!pages[cur].n&&confirm('این برگه خالی و نوشته‌هایش حذف شود؟')){delete strokes[pages[cur].id];pages.splice(cur,1);save();build();jump(Math.max(0,cur-1))}
+  if(pages[cur]&&!pages[cur].n&&confirm('این برگه خالی و نوشته‌هایش حذف شود؟')){dirty(pages[cur].id);md++;delete strokes[pages[cur].id];pages.splice(cur,1);save();build();jump(Math.max(0,cur-1))}
 };
 function jump(i){i=Math.max(0,Math.min(els.length-1,i));main.scrollTop+=els[i].getBoundingClientRect().top-main.getBoundingClientRect().top-10*zoom;upd()}
 $('#pn').onclick=()=>{if(!els.length)return;const n=parseInt(prompt('رفتن به صفحه (۱ تا '+els.length+')'));if(n)jump(n-1)};
@@ -389,7 +389,78 @@ $('#act').value=prefs.act;$('#act').onchange=e=>{prefs.act=e.target.value;savePr
 $('#learn').onclick=()=>{learning=!learning;$('#learn').textContent=learning?'دکمه را نگه دار…':'یادگیری دکمه';if(learning)toast('دکمه S Pen را نگه دار و قلم را روی صفحه بیاور')};
 $('#setb').onclick=e=>{e.stopPropagation();$('#set').hidden=!$('#set').hidden;showMask()};
 addEventListener('pointerdown',e=>{if(!e.target.closest('#set')&&!e.target.closest('#setb')&&e.pointerType!=='pen')$('#set').hidden=true});
+/* ---- همگام‌سازی ابری (R2 + D1) ---- */
+let cloud=false,since=0,md=0,dv=new Map(),pushing=0,pt;
+const JH={'content-type':'application/json'},uping=new Set();
+async function api(p,o){const r=await fetch('/api'+p,o);if(!r.ok)throw new Error(r.status);return r}
+const jget=async p=>(await api(p)).json();
+const dirty=id=>dv.set(id,(dv.get(id)||0)+1);
+const queuePush=()=>{clearTimeout(pt);pt=setTimeout(push,3000)};
+async function push(){
+  if(!cloud||!key||pushing||!navigator.onLine)return;
+  const bid=key,ids=[...dv].slice(0,40),mv=md;if(!ids.length&&!mv)return;
+  pushing=1;
+  try{
+    const body={pages:{}};ids.forEach(([id])=>body.pages[id]=strokes[id]&&strokes[id].length?strokes[id]:null);
+    if(mv)body.meta={pages:pages.map(p=>p.n?{id:p.id,n:p.n}:{id:p.id})};
+    await api('/books/'+bid+'/ink',{method:'PUT',headers:JH,body:JSON.stringify(body)});
+    if(key===bid){ids.forEach(([id,v])=>{if(dv.get(id)===v)dv.delete(id)});if(md===mv)md=0;wr();if(dv.size||md)queuePush()}
+  }catch(_){setTimeout(queuePush,15000)}
+  pushing=0;
+}
+async function pull(){
+  if(!cloud||!key)return;const bid=key;
+  try{
+    const r=await jget('/books/'+bid+'/ink?since='+since);if(key!==bid)return;
+    let re=0,ch=0;
+    if(r.meta&&!md){const np=r.meta.pages;if(JSON.stringify(np)!==JSON.stringify(pages.map(p=>p.n?{id:p.id,n:p.n}:{id:p.id}))){pages=np;re=1}}
+    for(const[id,d]of Object.entries(r.pages)){if(dv.has(id))continue;if(JSON.stringify(strokes[id]||[])!==JSON.stringify(d)){strokes[id]=d;ch=1}}
+    since=r.now;if(ch){ops=[];redoS=[]}wr();
+    if(re){const t=main.scrollTop;build();main.scrollTop=t}else if(ch)els.forEach(el=>{if(el._r)drawInk(el)});
+  }catch(_){}
+}
+async function download(b){
+  toast('در حال دانلود از فضای ابری…');
+  b.blob=await (await api('/books/'+b.id+'/file')).blob();b.synced=1;
+  await idb('books','readwrite',o=>o.put(b));
+}
+async function doUpload(b){
+  if(uping.has(b.id))return;uping.add(b.id);
+  try{
+    const{uploadId}=await (await api('/books/'+b.id+'/upload/start',{method:'POST',headers:JH,body:JSON.stringify({name:b.name,size:b.size,added:b.added})})).json();
+    const CH=8*1048576,n=Math.max(1,Math.ceil(b.blob.size/CH)),parts=[];
+    for(let i=0;i<n;i++){
+      parts.push(await (await api('/books/'+b.id+'/upload/'+uploadId+'/'+(i+1),{method:'PUT',body:b.blob.slice(i*CH,(i+1)*CH)})).json());
+      toast('آپلود «'+b.name+'» '+fa(Math.round((i+1)/n*100))+'٪');
+    }
+    await api('/books/'+b.id+'/upload/'+uploadId+'/complete',{method:'POST',headers:JH,body:JSON.stringify({parts})});
+    b.synced=1;await idb('books','readwrite',o=>o.put(b));toast('آپلود شد');
+  }catch(e){toast('آپلود «'+b.name+'» کامل نشد')}
+  uping.delete(b.id);if(document.body.classList.contains('lib'))showLib();
+}
+let uq=Promise.resolve();
+async function syncBooks(){
+  if(!cloud)return;
+  try{
+    const R=await jget('/books'),L=(await idb('books','readonly',o=>o.getAll()))||[],lm=new Map(L.map(b=>[b.id,b])),rm=new Set(R.map(r=>r.id));
+    for(const r of R){
+      const l=lm.get(r.id);
+      if(r.deleted){if(l){await idb('books','readwrite',o=>o.delete(r.id));await idb('ink','readwrite',o=>o.delete(r.id));if(key===r.id){key='';pages=[]}}continue}
+      if(!l)await idb('books','readwrite',o=>o.put({id:r.id,name:r.name,size:r.size,added:r.added,blob:null,synced:1}));
+    }
+    for(const b of L)if(b.blob&&!b.synced&&!rm.has(b.id))uq=uq.then(()=>doUpload(b));
+    if(document.body.classList.contains('lib'))showLib();
+  }catch(_){}
+}
+async function detect(){
+  try{await api('/books',{signal:AbortSignal.timeout(4000)});cloud=true}catch(_){cloud=false;return}
+  await syncBooks();pull();push();
+}
+document.addEventListener('visibilitychange',()=>{if(!document.hidden&&cloud){syncBooks();pull();push()}});
+addEventListener('online',detect);
+setInterval(()=>{if(!document.hidden&&cloud&&!document.body.classList.contains('lib')){push();pull()}},30000);
 refresh();
+detect();
 if('serviceWorker' in navigator)addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
 (async()=>{const l=localStorage.getItem('last');let ok=0;try{ok=l&&await idb('books','readonly',o=>o.get(l))}catch(_){}ok?openBook(l):showLib()})();
 </script>

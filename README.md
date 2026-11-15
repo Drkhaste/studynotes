@@ -1,30 +1,31 @@
-# یادداشت درس (Cloudflare Worker + Static Assets)
+# یادداشت درس (Cloudflare Worker + R2 + D1)
 
-وب‌اپ نصب‌شدنی (PWA) برای خواندن PDF و نوشتن با S Pen. فعلاً یک Worker فقط-فایل‌های-استاتیک است (بدون کد سمت سرور و بدون مرحله build). بعداً API، R2 و D1 به همین Worker اضافه می‌شوند.
+PWA برای خواندن PDF اسکن‌شده و نوشتن با S Pen، با همگام‌سازی بین دستگاه‌ها.
 
-## ساختار
-- `public/` : خود اپ (index.html، sw.js، manifest و آیکون‌ها). محتوای این پوشه ریشه سایت می‌شود.
-- `wrangler.jsonc` : تنظیم Worker (اسم و پوشه assets).
+- `public/` خود اپ
+- `src/worker.js` API (فقط `/api/*`) با R2 (فایل PDF) و D1 (نوشته‌ها)
+- `schema.sql` جدول‌های D1
+- `wrangler.jsonc` تنظیمات
 
-## دیپلوی با Git (پیشنهادی، یک بار)
-1. توی GitHub یک ریپوی Private بساز و همه این پوشه (با ساختار بالا) را آپلود کن.
-2. dash.cloudflare.com > Workers & Pages > Create application > Import a repository (Workers Builds) و ریپو را انتخاب کن.
-3. تنظیمات:
-   - Build command: خالی
-   - Deploy command: `npx wrangler deploy`
-   - Root directory: `/`
-4. Deploy. آدرس `studynotes.<حساب‌تو>.workers.dev` ساخته می‌شود.
-5. آدرس را روی تبلت با Chrome باز کن > منو > Install app.
+اپ بدون فضای ابری هم کار می‌کند (فقط محلی). همگام‌سازی وقتی فعال می‌شود که API و Access درست تنظیم شده باشند.
 
-## دیپلوی دستی (بدون GitHub)
-```
-npx wrangler login
-npx wrangler deploy
-```
+## راه‌اندازی (یک بار)
+1. **D1**: داشبورد کلودفلر > Storage & Databases > D1 > Create database با اسم `studynotes`. بعد توی تب Console همه محتوای `schema.sql` را اجرا کن. `database_id` را کپی کن و توی `wrangler.jsonc` بگذار.
+2. **R2**: R2 > Create bucket با اسم `studynotes-books`. (R2 برای فعال‌سازی کارت می‌خواهد ولی تا ۱۰ گیگ رایگان است.)
+3. ریپو را با این فایل‌ها آپدیت کن و Worker را دیپلوی کن (Workers Builds با `npx wrangler deploy` مثل قبل).
+4. **قفل کردن با Access** (ضروری، چون PDFها خصوصی‌اند):
+   - Workers & Pages > studynotes > Settings > Domains & Routes > روی ردیف `workers.dev` گزینه Cloudflare Access را فعال کن. وارد Zero Trust می‌شوی؛ یک Policy بساز که فقط ایمیل خودت را Allow کند.
+   - توی Zero Trust > Access > Applications، اپلیکیشن ساخته‌شده را باز کن و **Application Audience (AUD) Tag** را کپی کن.
+   - Team domain شبیه `اسم‌تیم.cloudflareaccess.com` است (Zero Trust > Settings).
+   - این دو مقدار را توی `vars` فایل `wrangler.jsonc` بگذار و دوباره push کن.
+5. بدون این دو مقدار، API عمداً همه درخواست‌ها را رد می‌کند (۴۰۱) و اپ فقط محلی کار می‌کند.
 
-## آپدیت
-هر تغییری روی `main` push کنی، خودکار دیپلوی می‌شود. اپ نصب‌شده دفعه بعد که باز کنی نسخه جدید را می‌گیرد.
+## تست محلی
+فایل `.dev.vars` با `ALLOW_INSECURE=1` بساز و `npx wrangler dev` بزن. این فایل را هرگز commit نکن (در .gitignore هست).
 
-## توجه
-- فعلاً کتاب‌ها و نوشته‌ها فقط روی همان دستگاه (IndexedDB) ذخیره می‌شوند. همگام‌سازی مرحله بعد است.
-- اگر اسم `studynotes` قبلاً گرفته شده بود، `name` را توی wrangler.jsonc عوض کن.
+## نحوه همگام‌سازی
+- کتاب جدید: روی دستگاه ذخیره و در پس‌زمینه با آپلود ۸ مگی تکه‌تکه به R2 می‌رود.
+- کتاب‌های دستگاه دیگر با برچسب «ابری» دیده می‌شوند و با باز کردن دانلود می‌شوند.
+- نوشته‌ها هر چند ثانیه بعد از تغییر (فقط صفحات تغییرکرده) به D1 می‌روند و با باز کردن اپ یا هر ۳۰ ثانیه دریافت می‌شوند. در تداخل، آخرین تغییر هر صفحه برنده است.
+- حذف کتاب از همه دستگاه‌ها پاک می‌شود و نیاز به آنلاین بودن دارد.
+- اگر نشست Access تمام شد، اپ آفلاین‌وار ادامه می‌دهد؛ یک بار سایت را داخل Chrome باز کن تا دوباره وارد شوی.

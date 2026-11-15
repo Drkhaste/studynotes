@@ -1,0 +1,4 @@
+CREATE TABLE IF NOT EXISTS books(id TEXT PRIMARY KEY, name TEXT, size INTEGER, added INTEGER, deleted INTEGER DEFAULT 0, ready INTEGER DEFAULT 0, updated INTEGER);
+CREATE TABLE IF NOT EXISTS ink(book TEXT, page TEXT, data TEXT, updated INTEGER, PRIMARY KEY(book, page));
+CREATE INDEX IF NOT EXISTS ink_upd ON ink(book, updated);
+CREATE TABLE IF NOT EXISTS meta(book TEXT PRIMARY KEY, pages TEXT, updated INTEGER);
