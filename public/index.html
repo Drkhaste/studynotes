@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>یادداشت درس</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="theme-color" content="#0f766e">
+<meta name="mobile-web-app-capable" content="yes">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;600&display=swap">
+<style>
+:root{--bg:#e6e9ec;--bar:#fff;--fg:#1c2530;--mut:#6b7684;--acc:#0f766e;--on:#fff;--line:#d8dde2;--sh:0 4px 18px rgba(0,0,0,.18);box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);color-scheme:light}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#101418;--bar:#1e252c;--fg:#e8edf2;--mut:#93a0ae;--acc:#2dd4bf;--on:#06201c;--line:#333c46;--sh:0 4px 18px rgba(0,0,0,.6);color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#101418;--bar:#1e252c;--fg:#e8edf2;--mut:#93a0ae;--acc:#2dd4bf;--on:#06201c;--line:#333c46;--sh:0 4px 18px rgba(0,0,0,.6);color-scheme:dark}
+html,body{height:100%;margin:0}
+body{background:var(--bg);color:var(--fg);font-family:Vazirmatn,Tahoma,"Segoe UI",sans-serif;display:flex;flex-direction:column;overflow:hidden;-webkit-user-select:none;user-select:none}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);background:var(--bar);z-index:10}
+button,label{font:inherit;color:var(--fg);cursor:pointer}
+#top{display:flex;align-items:center;gap:6px;padding:6px 10px;background:var(--bar);border-bottom:1px solid var(--line);flex:none;overflow-x:auto}
+.b{background:none;border:1px solid transparent;border-radius:10px;padding:7px 11px;font-size:14px;white-space:nowrap;flex:none}
+.b:hover{background:var(--bg)} .b:disabled{opacity:.35}
+.b.main{background:var(--acc);color:var(--on);font-weight:600}
+.sp{flex:1}
+#pn,#zp{border-color:var(--line);min-width:76px;direction:ltr}
+#main{flex:1;overflow:auto;touch-action:none;overscroll-behavior:none}
+#pages{display:flex;flex-direction:column;align-items:center;min-width:100%;width:max-content;padding:10px 0 130px;box-sizing:border-box;gap:10px}
+.pg{position:relative;background:#fff;box-shadow:0 1px 8px rgba(0,0,0,.25);flex:none}
+.pg canvas{position:absolute;inset:0;width:100%;height:100%}
+.ink{touch-action:none;mix-blend-mode:multiply}
+#empty{margin:16vh auto 0;text-align:center;max-width:320px;line-height:2;color:var(--mut)}
+#empty b{display:block;font-size:22px;color:var(--fg)}
+#dock{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(14px + env(safe-area-inset-bottom,0px));display:flex;gap:2px;align-items:center;background:var(--bar);border:1px solid var(--line);border-radius:24px;padding:5px;box-shadow:var(--sh);max-width:96vw;overflow-x:auto}
+.t{display:flex;align-items:center;gap:6px;border:0;background:none;border-radius:18px;padding:9px 13px;font-size:13px;white-space:nowrap}
+.t i{width:11px;height:11px;border-radius:50%;border:1px solid rgba(128,128,128,.5);display:inline-block}
+.t.on{background:var(--acc);color:var(--on);font-weight:600}
+#pop{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(76px + env(safe-area-inset-bottom,0px));width:min(330px,92vw);background:var(--bar);border:1px solid var(--line);border-radius:18px;padding:14px;box-shadow:var(--sh);box-sizing:border-box}
+#pop[hidden]{display:none}
+#pal{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;justify-items:center}
+.sw{width:34px;height:34px;border-radius:50%;border:2px solid var(--line);padding:0}
+.sw.on{outline:3px solid var(--acc);outline-offset:2px}
+#cc{width:34px;height:34px;padding:0;border:2px solid var(--line);border-radius:50%;background:none;overflow:hidden}
+.row{display:flex;align-items:center;gap:10px;margin-top:14px;font-size:13px;color:var(--mut)}
+#sz{flex:1;accent-color:var(--acc)}
+#pv{width:44px;display:flex;align-items:center;justify-content:center;height:24px}
+#pv span{display:block;width:40px;border-radius:99px}
+#msg{position:fixed;top:calc(64px + env(safe-area-inset-top,0px));left:50%;transform:translateX(-50%);background:var(--fg);color:var(--bar);padding:8px 16px;border-radius:20px;font-size:13px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:20}
+#set{position:fixed;top:calc(58px + env(safe-area-inset-top,0px));left:10px;width:min(340px,92vw);background:var(--bar);border:1px solid var(--line);border-radius:16px;padding:14px;box-shadow:var(--sh);box-sizing:border-box;z-index:15}
+#set[hidden],#badge[hidden]{display:none}
+#set .r{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px;font-size:14px}
+#set select{font:inherit;font-size:13px;background:var(--bg);color:var(--fg);border:1px solid var(--line);border-radius:8px;padding:6px}
+#set .b{border-color:var(--line)}
+#dbg{white-space:pre-line;font-size:12px;color:var(--mut);direction:ltr;text-align:left;line-height:1.7}
+#badge{position:fixed;top:calc(64px + env(safe-area-inset-top,0px));right:14px;background:var(--acc);color:var(--on);padding:7px 14px;border-radius:18px;font-size:13px;font-weight:600;z-index:20;pointer-events:none}
+#lib{display:none;flex:1;overflow:auto;padding:16px}
+body.lib #lib{display:block}
+body.lib #main,body.lib #dock,body.lib .rd,body.lib #pop{display:none!important}
+.bk{display:flex;align-items:center;gap:10px;background:var(--bar);border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin:0 auto 10px;max-width:640px}
+.bk .bn{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;direction:ltr;text-align:right}
+.bk .bm{color:var(--mut);font-size:12px}
+.bk .b{border-color:var(--line)}
+.none{text-align:center;color:var(--mut);margin-top:16vh;line-height:2}
+</style>
+</head>
+<body>
+<header id="top">
+  <label class="b main">افزودن PDF<input id="f" type="file" accept="application/pdf" multiple hidden></label>
+  <button id="libb" class="b">کتابخانه</button>
+  <button id="pn" class="b rd">–</button>
+  <span class="sp"></span>
+  <button id="undo" class="b rd" title="برگردان">↶</button>
+  <button id="redo" class="b rd" title="جلو">↷</button>
+  <button id="addb" class="b rd">+ برگه خالی</button>
+  <button id="delb" class="b rd" hidden>حذف برگه</button>
+  <button id="zp" class="b rd">۱۰۰٪</button>
+  <button id="setb" class="b" title="تنظیمات قلم">⚙</button>
+</header>
+<div id="main" dir="ltr"><div id="pages"><div id="empty" dir="rtl"><b>یادداشت درس</b>یک PDF باز کن. با S Pen بنویس، با انگشت جابه‌جا شو و با دو انگشت زوم کن. دکمه کنار قلم پاک‌کن است.</div></div></div>
+<div id="lib"></div>
+<div id="pop" hidden>
+  <div id="pal"></div>
+  <div class="row"><span>اندازه</span><input id="sz" type="range" min="0.5" max="3" step="0.1" value="1"><div id="pv"><span></span></div></div>
+</div>
+<nav id="dock">
+  <button class="t on" data-k="ball"><i></i>خودکار</button>
+  <button class="t" data-k="fnt"><i></i>خوش‌نویس</button>
+  <button class="t" data-k="pcl"><i></i>مداد</button>
+  <button class="t" data-k="hl"><i></i>هایلایت</button>
+  <button class="t" data-k="hls"><i></i>هایلایت صاف</button>
+  <button class="t" data-k="er">پاک‌کن</button>
+</nav>
+<div id="set" hidden>
+  <label class="r">دکمه کنار S Pen
+    <select id="act"><option value="er">پاک‌کن (تا وقتی نگه داری)</option><option value="hl">هایلایت</option><option value="hls">هایلایت صاف</option><option value="ball">خودکار</option><option value="fnt">خوش‌نویس</option><option value="pcl">مداد</option><option value="undo">برگردان (Undo)</option><option value="swap">برگشت به ابزار قبلی</option><option value="none">هیچ</option></select></label>
+  <div class="r"><button id="learn" class="b">یادگیری دکمه</button><span id="mk"></span></div>
+  <div id="dbg">برای تست، قلم را بالای صفحه نگه دار و دکمه را بزن.</div>
+</div>
+<div id="badge" hidden></div>
+<div id="msg"></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script>
+const $=s=>document.querySelector(s),main=$('#main'),box=$('#pages');
+pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+const K={ball:{w:.0024,a:.6,b:.5},fnt:{w:.0032,a:.15,b:1.6},pcl:{w:.0030,a:.5,b:.7},hl:{w:.022,h:1},hls:{w:.022,h:1}};
+const tc={ball:'#111111',fnt:'#1d4ed8',pcl:'#4b5563',hl:'#facc15',hls:'#4ade80'},ts={ball:1,fnt:1,pcl:1,hl:1,hls:1};
+const PAL=['#111111','#4b5563','#1d4ed8','#0ea5e9','#16a34a','#dc2626','#f97316','#7c3aed','#db2777','#facc15','#4ade80','#fb7185'];
+let pdf=null,key='',pages=[],strokes={},ratio=1.414,zoom=1,tool='ball',ops=[],redoS=[],cur=0,els=[],lastPen=0;
+const dpr=Math.min(devicePixelRatio||1,2),fa=n=>Number(n).toLocaleString('fa');
+const toast=t=>{const m=$('#msg');m.textContent=t;m.style.opacity=1;clearTimeout(toast.t);toast.t=setTimeout(()=>m.style.opacity=0,1800)};
+const DB=new Promise((res,rej)=>{const r=indexedDB.open('studynotes',1);r.onupgradeneeded=()=>{r.result.createObjectStore('books',{keyPath:'id'});r.result.createObjectStore('ink')};r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)});
+const idb=async(st,mode,fn)=>{const d=await DB;return new Promise((res,rej)=>{const t=d.transaction(st,mode),q=fn(t.objectStore(st));t.oncomplete=()=>res(q&&q.result);t.onerror=()=>rej(t.error)})};
+const wr=()=>key&&pages.length?idb('ink','readwrite',o=>o.put({pages,strokes,cur},key)).catch(()=>toast('ذخیره نشد')):0;
+let st;const save=()=>{clearTimeout(st);st=setTimeout(wr,400)};
+document.addEventListener('visibilitychange',()=>{if(document.hidden)wr()});
+try{navigator.storage&&navigator.storage.persist&&navigator.storage.persist()}catch(_){}
+const pgW=()=>Math.round((main.clientWidth-16)*zoom);
+
+$('#f').onchange=async e=>{
+  const fs=[...e.target.files];let last;toast('در حال افزودن…');
+  for(const f of fs){last=crypto.randomUUID();await idb('books','readwrite',o=>o.put({id:last,name:f.name,size:f.size,added:Date.now(),blob:f}))}
+  e.target.value='';if(fs.length==1)openBook(last);else showLib();
+};
+async function openBook(id){
+  try{
+    toast('در حال بارگذاری…');
+    const b=await idb('books','readonly',o=>o.get(id));
+    const doc=await pdfjsLib.getDocument({data:await b.blob.arrayBuffer()}).promise;
+    const v=(await doc.getPage(1)).getViewport({scale:1}),sv=await idb('ink','readonly',o=>o.get(id));
+    await wr();pdf=doc;key=id;ratio=v.height/v.width;
+    pages=(sv&&sv.pages)||Array.from({length:pdf.numPages},(_,i)=>({id:'p'+(i+1),n:i+1}));
+    strokes=(sv&&sv.strokes)||{};ops=[];redoS=[];zoom=1;rat={};cur=0;
+    document.body.classList.remove('lib');build();prefetch();localStorage.setItem('last',id);
+    if(sv&&sv.cur)setTimeout(()=>jump(sv.cur),50);
+  }catch(err){toast('فایل باز نشد');showLib()}
+}
+async function showLib(){
+  await wr();document.body.classList.add('lib');
+  const L=(await idb('books','readonly',o=>o.getAll()))||[];L.sort((a,b)=>b.added-a.added);
+  const lib=$('#lib');lib.innerHTML='';
+  if(!L.length){lib.innerHTML='<div class="none"><b style="font-size:22px;color:var(--fg)">یادداشت درس</b><br>با «افزودن PDF» کتاب‌هایت را اضافه کن.<br>فایل‌ها روی همین دستگاه می‌مانند و دوباره لازم نیست انتخابشان کنی.</div>';return}
+  L.forEach(b=>{
+    const d=document.createElement('div');d.className='bk';
+    d.innerHTML='<div class="bn"></div><div class="bm"></div><button class="b main">باز کردن</button><button class="b">حذف</button>';
+    d.querySelector('.bn').textContent=b.name;d.querySelector('.bm').textContent=fa((b.size/1048576).toFixed(1))+' مگ';
+    const[o,x]=d.querySelectorAll('button');o.onclick=()=>openBook(b.id);
+    x.onclick=async()=>{if(confirm('«'+b.name+'» و نوشته‌هایش حذف شود؟')){await idb('books','readwrite',t=>t.delete(b.id));await idb('ink','readwrite',t=>t.delete(b.id));if(key===b.id){key='';pages=[]}showLib()}};
+    lib.appendChild(d);
+  });
+}
+$('#libb').onclick=showLib;
+let rat={},prevTool='ball',prefs={act:'er',mask:6};
+try{Object.assign(prefs,JSON.parse(localStorage.getItem('prefs')))}catch(_){}
+const savePrefs=()=>{try{localStorage.setItem('prefs',JSON.stringify(prefs))}catch(_){}};
+function setH(el,h){const o=el.offsetHeight;if(Math.abs(h-o)<1)return;const t=el.getBoundingClientRect().top-main.getBoundingClientRect().top;el.style.height=h+'px';if(t+o<=0)main.scrollTop+=h-o}
+async function prefetch(){const my=pdf;for(let n=2;n<=my.numPages&&pdf===my;n++){try{const v=(await my.getPage(n)).getViewport({scale:1});rat[n]=v.height/v.width;els.forEach(el=>{if(pages[el.dataset.i].n===n)setH(el,Math.round(pgW()*rat[n]))})}catch(_){}if(n%8==0)await new Promise(r=>setTimeout(r,0))}}
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)els.forEach(el=>{if(el._r){release(el);render(el)}})});
+addEventListener('contextmenu',e=>e.preventDefault());
+const io=new IntersectionObserver(es=>es.forEach(en=>en.isIntersecting?render(en.target):release(en.target)),{root:main,rootMargin:'35% 0px'});
+function build(){
+  io.disconnect();box.innerHTML='';els=[];
+  const W=pgW();box.style.gap=10*zoom+'px';box.style.paddingTop=10*zoom+'px';
+  pages.forEach((p,i)=>{
+    const el=document.createElement('div');el.className='pg';el.dataset.i=i;
+    el.style.width=W+'px';el.style.height=Math.round(W*(rat[p.n]||ratio))+'px';
+    el.innerHTML='<canvas class="bg"></canvas><canvas class="ink"></canvas>';
+    bind(el.querySelector('.ink'),el);box.appendChild(el);els.push(el);io.observe(el);
+  });
+  upd();
+}
+function release(el){
+  el._r=0;el._t=(el._t||0)+1;
+  if(el._task){try{el._task.cancel()}catch(_){}el._task=null}
+  el.querySelectorAll('canvas').forEach(c=>{c.width=0;c.height=0});
+}
+async function render(el){
+  if(el._r)return;el._r=1;const tk=el._t=(el._t||0)+1;
+  const p=pages[el.dataset.i],W=pgW(),bg=el.querySelector('.bg'),ink=el.querySelector('.ink');
+  let H=el.clientHeight,d;
+  if(p.n){
+    const pg=await pdf.getPage(p.n);if(el._t!==tk)return;
+    const v0=pg.getViewport({scale:1});H=Math.round(W*v0.height/v0.width);setH(el,H);
+    d=el._d=Math.min(dpr,Math.sqrt(7e6/(W*H)));
+    const v=pg.getViewport({scale:W*d/v0.width});bg.width=v.width;bg.height=v.height;
+    el._task=pg.render({canvasContext:bg.getContext('2d'),viewport:v});
+    try{await el._task.promise}catch(_){return}
+  }
+  if(el._t!==tk)return;
+  d=el._d=Math.min(dpr,Math.sqrt(7e6/(W*H)));ink.width=W*d;ink.height=H*d;drawInk(el);
+}
+const C=el=>{const c=el.querySelector('.ink').getContext('2d'),d=el._d||dpr;c.setTransform(d,0,0,d,0,0);return c};
+function drawStroke(c,s,W){
+  const P=s.p;if(!P.length)return;const k=K[s.k||(s.h?'hl':'ball')]||K.ball;
+  c.lineJoin='round';c.strokeStyle=c.fillStyle=s.c;
+  if(k.h){
+    c.globalAlpha=.4;c.lineCap='butt';c.lineWidth=s.w*W;c.beginPath();c.moveTo(P[0][0]*W,P[0][1]*W);
+    P.forEach(q=>c.lineTo(q[0]*W,q[1]*W));if(P.length==1)c.lineTo(P[0][0]*W+.1,P[0][1]*W);c.stroke();c.globalAlpha=1;return;
+  }
+  c.lineCap='round';
+  if(P.length==1){c.beginPath();c.arc(P[0][0]*W,P[0][1]*W,s.w*W*(k.a+P[0][2]*k.b)/2,0,7);c.fill();return}
+  for(let i=1;i<P.length;i++){
+    c.lineWidth=s.w*W*(k.a+(P[i][2]+P[i-1][2])/2*k.b);
+    c.beginPath();c.moveTo(P[i-1][0]*W,P[i-1][1]*W);c.lineTo(P[i][0]*W,P[i][1]*W);c.stroke();
+  }
+}
+function drawInk(el){
+  const ink=el.querySelector('.ink');if(!ink.width)return;
+  const c=C(el),W=el.clientWidth;c.clearRect(0,0,W,el.clientHeight);
+  (strokes[pages[el.dataset.i].id]||[]).forEach(s=>drawStroke(c,s,W));
+}
+
+const segD=(a,b,q)=>{const dx=b[0]-a[0],dy=b[1]-a[1],l=dx*dx+dy*dy;let t=l?((q[0]-a[0])*dx+(q[1]-a[1])*dy)/l:0;t=Math.max(0,Math.min(1,t));return Math.hypot(a[0]+t*dx-q[0],a[1]+t*dy-q[1])};
+const hit=(P,q,r)=>P.length==1?Math.hypot(P[0][0]-q[0],P[0][1]-q[1])<r:P.some((a,i)=>i&&segD(P[i-1],a,q)<r);
+let tog=false;const HOLD=['er','hl','hls','ball','fnt','pcl'];
+const btnHeld=e=>e.pointerType==='pen'&&(e.buttons&prefs.mask)!==0;
+function penAct(e){
+  if(btnHeld(e)||tog){return HOLD.includes(prefs.act)?prefs.act:(prefs.act==='none'?tool:null)}
+  if(e.buttons&32)return 'er';
+  return tool;
+}
+function bind(cv,el){
+  let mode=null,s=null,gone=[],eff=null;
+  const xy=e=>{const r=el.getBoundingClientRect();return[+((e.clientX-r.left)/r.width).toFixed(4),+((e.clientY-r.top)/r.width).toFixed(4),+(e.pressure||.5).toFixed(2)]};
+  const id=()=>pages[el.dataset.i].id;
+  const erase=q=>{
+    const L=strokes[id()]||[],keep=[];
+    L.forEach(t=>hit(t.p,q,.022+((K[t.k||'ball']||{}).h?t.w/2:0))?gone.push(t):keep.push(t));
+    if(keep.length!==L.length){strokes[id()]=keep;drawInk(el)}
+  };
+  const start=(e,t)=>{
+    eff=t;const q=xy(e);
+    if(t==='er'){mode='erase';gone=[];erase(q);return}
+    mode='draw';s={k:t,c:tc[t],w:K[t].w*ts[t],p:[q]};
+    if(!K[t].h)drawStroke(C(el),s,el.clientWidth);
+  };
+  const finish=()=>{
+    if(mode==='draw'&&s){(strokes[id()]=strokes[id()]||[]).push(s);commit({id:id(),add:[s],rem:[]})}
+    else if(mode==='erase'&&gone.length)commit({id:id(),add:[],rem:gone});
+    if(mode)drawInk(el);mode=null;s=null;gone=[];
+  };
+  cv.onpointerdown=e=>{
+    if(e.pointerType==='touch')return;
+    if(mode)finish();
+    try{cv.setPointerCapture(e.pointerId)}catch(_){}
+    const t=penAct(e);if(t)start(e,t);
+  };
+  cv.onpointermove=e=>{
+    if(!mode)return;
+    const t=penAct(e);
+    if(t!==eff){finish();if(t)start(e,t);return}
+    const evs=e.getCoalescedEvents?e.getCoalescedEvents():[e];
+    for(const ev of(evs.length?evs:[e])){
+      const q=xy(ev);
+      if(mode==='erase'){erase(q);continue}
+      if(s.k==='hls'){const a=s.p[0];if(Math.abs(q[1]-a[1])<Math.abs(q[0]-a[0])*.07)q[1]=a[1];s.p=[a,q]}
+      else{const prev=s.p[s.p.length-1];s.p.push(q);if(!K[s.k].h)drawStroke(C(el),{...s,p:[prev,q]},el.clientWidth)}
+    }
+    if(mode==='draw'&&K[s.k].h){drawInk(el);drawStroke(C(el),s,el.clientWidth)}
+  };
+  cv.onpointerup=cv.onpointercancel=cv.onlostpointercapture=finish;
+}
+function commit(o){ops.push(o);redoS=[];save();refresh()}
+function apply(o,rev){
+  const add=rev?o.rem:o.add,rem=rev?o.add:o.rem;
+  strokes[o.id]=(strokes[o.id]||[]).filter(x=>!rem.includes(x)).concat(add);
+  const el=els[pages.findIndex(p=>p.id===o.id)];if(el)drawInk(el);save();
+}
+const undo=()=>{const o=ops.pop();if(o){apply(o,true);redoS.push(o);refresh()}};
+const redo=()=>{const o=redoS.pop();if(o){apply(o,false);ops.push(o);refresh()}};
+$('#undo').onclick=undo;$('#redo').onclick=redo;
+addEventListener('keydown',e=>{if(e.ctrlKey&&e.key==='z'){e.preventDefault();undo()}if(e.ctrlKey&&e.key==='y'){e.preventDefault();redo()}});
+
+/* touch: one finger pans with momentum, two fingers pinch-zoom */
+const T=new Map();let pan=null,pin=null,mom=0;
+addEventListener('pointermove',e=>{if(e.pointerType==='pen')lastPen=performance.now()},true);
+main.addEventListener('pointerdown',e=>{
+  if(e.pointerType!=='touch'||performance.now()-lastPen<600)return;
+  main.setPointerCapture(e.pointerId);cancelAnimationFrame(mom);closePop();
+  T.set(e.pointerId,{x:e.clientX,y:e.clientY});
+  if(T.size==2)startPin();else if(T.size==1)pan={t:e.timeStamp,vx:0,vy:0};
+});
+function startPin(){
+  const[a,b]=[...T.values()],r=main.getBoundingClientRect();
+  const cx=(a.x+b.x)/2-r.left,cy=(a.y+b.y)/2-r.top;
+  pan=null;pin={d:Math.hypot(a.x-b.x,a.y-b.y)||1,cx,cy,ox:main.scrollLeft+cx,oy:main.scrollTop+cy,s:1,nx:cx,ny:cy};
+  box.style.transformOrigin=pin.ox+'px '+pin.oy+'px';
+}
+main.addEventListener('pointermove',e=>{
+  const p=T.get(e.pointerId);if(!p)return;
+  const dx=e.clientX-p.x,dy=e.clientY-p.y;p.x=e.clientX;p.y=e.clientY;
+  if(pin&&T.size>=2){
+    const[a,b]=[...T.values()],r=main.getBoundingClientRect();
+    pin.s=Math.max(.5/zoom,Math.min(3/zoom,Math.hypot(a.x-b.x,a.y-b.y)/pin.d));
+    pin.nx=(a.x+b.x)/2-r.left;pin.ny=(a.y+b.y)/2-r.top;
+    box.style.transform='translate('+(pin.nx-pin.cx)+'px,'+(pin.ny-pin.cy)+'px) scale('+pin.s+')';
+    $('#zp').textContent=fa(Math.round(zoom*pin.s*100))+'٪';
+  }else if(pan){
+    main.scrollLeft-=dx;main.scrollTop-=dy;const dt=Math.max(e.timeStamp-pan.t,1);
+    pan.vx=dx/dt;pan.vy=dy/dt;pan.t=e.timeStamp;
+  }
+});
+function endT(e){
+  if(!T.delete(e.pointerId))return;
+  if(pin&&T.size<2){
+    const r=pin.s;box.style.transform='';zoomTo(zoom*r,pin.ox,pin.oy,pin.nx,pin.ny);pin=null;
+    const left=[...T.values()][0];if(left)pan={t:e.timeStamp,vx:0,vy:0};
+  }else if(pan&&T.size==0){
+    let vx=pan.vx,vy=pan.vy;
+    const step=()=>{if(Math.abs(vx)+Math.abs(vy)<.02)return;main.scrollLeft-=vx*16;main.scrollTop-=vy*16;vx*=.95;vy*=.95;mom=requestAnimationFrame(step)};
+    if(performance.now()-pan.t<80||e.timeStamp-pan.t<80)step();pan=null;
+  }
+}
+main.addEventListener('pointerup',endT);main.addEventListener('pointercancel',endT);
+function zoomTo(z,ox,oy,nx,ny){
+  z=Math.max(.5,Math.min(3,z));const r=z/zoom;zoom=z;build();
+  main.scrollLeft=ox*r-nx;main.scrollTop=oy*r-ny;$('#zp').textContent=fa(Math.round(zoom*100))+'٪';
+}
+let wz=0;main.addEventListener('wheel',e=>{
+  if(!e.ctrlKey||!pages.length)return;e.preventDefault();
+  const r=main.getBoundingClientRect(),cx=e.clientX-r.left,cy=e.clientY-r.top;
+  clearTimeout(wz);const z=zoom*Math.exp(-e.deltaY*.01);
+  wz=setTimeout(()=>zoomTo(z,main.scrollLeft+cx,main.scrollTop+cy,cx,cy),60);
+},{passive:false});
+$('#zp').onclick=()=>pages.length&&zoomTo(1,main.scrollLeft,main.scrollTop,0,0);
+let rw=main.clientWidth;addEventListener('resize',()=>{if(pages.length&&Math.abs(main.clientWidth-rw)>40){rw=main.clientWidth;build()}});
+
+$('#addb').onclick=()=>{
+  if(!pages.length)return;pages.splice(cur+1,0,{id:'b'+Date.now()});save();build();jump(cur+1);toast('برگه خالی اضافه شد');
+};
+$('#delb').onclick=()=>{
+  if(pages[cur]&&!pages[cur].n&&confirm('این برگه خالی و نوشته‌هایش حذف شود؟')){delete strokes[pages[cur].id];pages.splice(cur,1);save();build();jump(Math.max(0,cur-1))}
+};
+function jump(i){i=Math.max(0,Math.min(els.length-1,i));main.scrollTop+=els[i].getBoundingClientRect().top-main.getBoundingClientRect().top-10*zoom;upd()}
+$('#pn').onclick=()=>{if(!els.length)return;const n=parseInt(prompt('رفتن به صفحه (۱ تا '+els.length+')'));if(n)jump(n-1)};
+
+/* tools, palette, size */
+const pop=$('#pop'),closePop=()=>pop.hidden=true;
+PAL.forEach(c=>{const b=document.createElement('button');b.className='sw';b.style.background=c;b.dataset.c=c;b.onclick=()=>{tc[tool]=c;refresh()};$('#pal').appendChild(b)});
+const cc=document.createElement('input');cc.type='color';cc.id='cc';cc.oninput=()=>{tc[tool]=cc.value;refresh()};$('#pal').appendChild(cc);
+$('#sz').oninput=e=>{ts[tool]=+e.target.value;refresh()};
+document.querySelectorAll('.t').forEach(b=>b.onclick=ev=>{
+  ev.stopPropagation();const k=b.dataset.k;
+  if(k===tool&&k!=='er')pop.hidden=!pop.hidden;else{prevTool=tool;tool=k;pop.hidden=true}
+  refresh();
+});
+addEventListener('pointerdown',e=>{if(!pop.contains(e.target)&&!e.target.closest('#dock'))closePop()});
+function refresh(){
+  document.querySelectorAll('.t').forEach(b=>{b.classList.toggle('on',b.dataset.k===tool);const i=b.querySelector('i');if(i)i.style.background=tc[b.dataset.k]});
+  document.querySelectorAll('.sw').forEach(b=>b.classList.toggle('on',b.dataset.c===tc[tool]));
+  if(tool!=='er'){$('#sz').value=ts[tool];const h=K[tool].h?Math.min(22,ts[tool]*8):Math.max(2,ts[tool]*3);const s=$('#pv span');s.style.height=h+'px';s.style.background=tc[tool];s.style.opacity=K[tool].h?.5:1}
+  $('#undo').disabled=!ops.length;$('#redo').disabled=!redoS.length;
+}
+function upd(){
+  if(!els.length){$('#pn').textContent='–';return}
+  const top=main.getBoundingClientRect().top,mid=main.clientHeight/3;let i=0;
+  while(i<els.length-1&&els[i+1].getBoundingClientRect().top-top<=mid)i++;
+  cur=i;$('#pn').textContent=fa(i+1)+' / '+fa(els.length);$('#delb').hidden=!!pages[i].n;
+}
+let tm;main.addEventListener('scroll',()=>{clearTimeout(tm);tm=setTimeout(upd,60)},{passive:true});
+/* S Pen button: customizable action + live test */
+const NAMES={er:'پاک‌کن',hl:'هایلایت',hls:'هایلایت صاف',ball:'خودکار',fnt:'خوش‌نویس',pcl:'مداد',undo:'برگردان',swap:'ابزار قبلی',none:'هیچ'};
+let held=false,learning=false,lastEdge=0,bt;
+let lastB=-1;const dl=[];function dlog(t){dl.push(t);if(dl.length>8)dl.shift();if(!$('#set').hidden)$('#dbg').textContent=dl.join('\n')}
+function ctxBtn(){
+  const b=$('#badge');
+  if(learning){prefs.ctx=true;prefs.mask=0;learning=false;savePrefs();$('#learn').textContent='یادگیری دکمه';toast('دکمه ثبت شد (حالت کلیک)');showMask();return}
+  if(!prefs.ctx)return;
+  if(prefs.act==='undo')undo();else if(prefs.act==='swap')swapTool();
+  else if(prefs.act!=='none'){tog=!tog;b.hidden=!tog;b.textContent='دکمه قلم: '+NAMES[prefs.act]+' (روشن)'}
+}
+['contextmenu','auxclick','mousedown','keydown','pointercancel'].forEach(t=>addEventListener(t,e=>{
+  if(t!=='keydown'&&performance.now()-lastPen>900)return;
+  dlog(t+(e.key?' key='+e.key:'')+(e.button!==undefined?' button='+e.button:''));
+  if(t==='contextmenu'){e.preventDefault();ctxBtn()}
+},true));
+const swapTool=()=>{const t=tool;tool=prevTool;prevTool=t;refresh()};
+function penEvt(e){
+  if(e.pointerType!=='pen')return;lastPen=performance.now();
+  if(learning&&((e.buttons&~1)||(e.type==='pointerdown'&&[1,2,5].includes(e.button)))){prefs.mask=(e.buttons&~1)||(e.button===5?32:e.button===1?4:2);prefs.ctx=false;learning=false;savePrefs();$('#learn').textContent='یادگیری دکمه';toast('دکمه ثبت شد');showMask()}
+  const h=btnHeld(e);
+  if(h&&!held&&performance.now()-lastEdge>350){lastEdge=performance.now();if(prefs.act==='undo')undo();else if(prefs.act==='swap')swapTool()}
+  held=h;const b=$('#badge');b.hidden=!(h||tog)||prefs.act==='none';if(h||tog)b.textContent='دکمه قلم: '+NAMES[prefs.act];
+  clearTimeout(bt);if(!tog)bt=setTimeout(()=>b.hidden=true,700);
+  if(e.type!=='pointermove'||e.buttons!==lastB)dlog(e.type+' buttons='+e.buttons+' button='+e.button+' p='+(+e.pressure).toFixed(2));lastB=e.buttons;
+}
+['pointermove','pointerdown','pointerup'].forEach(t=>addEventListener(t,penEvt,true));
+const showMask=()=>$('#mk').textContent=prefs.ctx?'حالت کلیک':'کد: '+prefs.mask;
+$('#act').value=prefs.act;$('#act').onchange=e=>{prefs.act=e.target.value;savePrefs()};
+$('#learn').onclick=()=>{learning=!learning;$('#learn').textContent=learning?'دکمه را نگه دار…':'یادگیری دکمه';if(learning)toast('دکمه S Pen را نگه دار و قلم را روی صفحه بیاور')};
+$('#setb').onclick=e=>{e.stopPropagation();$('#set').hidden=!$('#set').hidden;showMask()};
+addEventListener('pointerdown',e=>{if(!e.target.closest('#set')&&!e.target.closest('#setb')&&e.pointerType!=='pen')$('#set').hidden=true});
+refresh();
+if('serviceWorker' in navigator)addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
+(async()=>{const l=localStorage.getItem('last');let ok=0;try{ok=l&&await idb('books','readonly',o=>o.get(l))}catch(_){}ok?openBook(l):showLib()})();
+</script>
+</body>
+</html>
