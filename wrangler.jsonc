@@ -8,7 +8,7 @@
     "run_worker_first": ["/api/*"]
   },
   "d1_databases": [
-    { "binding": "DB", "database_name": "studynotes", "database_id": "PASTE_D1_ID_HERE" }
+    { "binding": "DB", "database_name": "studynotes", "database_id": "bf31df31-a1ed-4e64-80d0-91052cab189c" }
   ],
   "r2_buckets": [
     { "binding": "BOOKS", "bucket_name": "studynotes-books" }
