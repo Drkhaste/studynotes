@@ -118,14 +118,14 @@ const pgW=()=>Math.round((main.clientWidth-16)*zoom);
 
 $('#f').onchange=async e=>{
   const fs=[...e.target.files];let last;toast('در حال افزودن…');
-  for(const f of fs){last=crypto.randomUUID();await idb('books','readwrite',o=>o.put({id:last,name:f.name,size:f.size,added:Date.now(),blob:f,synced:0}))}
-  e.target.value='';if(fs.length==1)openBook(last);else showLib();syncBooks();
+  for(const f of fs){last=await fp(f);await idb('books','readwrite',o=>o.put({id:last,name:f.name,size:f.size,added:Date.now(),blob:f}))}
+  e.target.value='';if(fs.length==1)openBook(last);else showLib();
 };
 async function openBook(id){
   try{
     toast('در حال بارگذاری…');
     const b=await idb('books','readonly',o=>o.get(id));
-    if(!b.blob)await download(b);const doc=await pdfjsLib.getDocument({data:await b.blob.arrayBuffer()}).promise;
+    const doc=await pdfjsLib.getDocument({data:await b.blob.arrayBuffer()}).promise;
     const v=(await doc.getPage(1)).getViewport({scale:1}),sv=await idb('ink','readonly',o=>o.get(id));
     await wr();pdf=doc;key=id;ratio=v.height/v.width;
     pages=(sv&&sv.pages)||Array.from({length:pdf.numPages},(_,i)=>({id:'p'+(i+1),n:i+1}));
@@ -142,9 +142,9 @@ async function showLib(){
   L.forEach(b=>{
     const d=document.createElement('div');d.className='bk';
     d.innerHTML='<div class="bn"></div><div class="bm"></div><button class="b main">باز کردن</button><button class="b">حذف</button>';
-    d.querySelector('.bn').textContent=b.name;d.querySelector('.bm').textContent=fa((b.size/1048576).toFixed(1))+' مگ'+(b.blob?(b.synced?'':' (فقط روی این دستگاه)'):' (ابری، با باز کردن دانلود می‌شود)');
+    d.querySelector('.bn').textContent=b.name;d.querySelector('.bm').textContent=fa((b.size/1048576).toFixed(1))+' مگ';
     const[o,x]=d.querySelectorAll('button');o.onclick=()=>openBook(b.id);
-    x.onclick=async()=>{if(confirm('«'+b.name+'» و نوشته‌هایش حذف شود؟')){if(cloud){try{await api('/books/'+b.id,{method:'DELETE'})}catch(_){toast('برای حذف باید آنلاین باشی');return}}await idb('books','readwrite',t=>t.delete(b.id));await idb('ink','readwrite',t=>t.delete(b.id));if(key===b.id){key='';pages=[]}showLib()}};
+    x.onclick=async()=>{if(confirm('«'+b.name+'» و نوشته‌هایش (از ابر هم) حذف شود؟')){if(cloud){try{await api('/books/'+b.id,{method:'DELETE'})}catch(_){toast('برای حذف باید آنلاین باشی');return}}await idb('books','readwrite',t=>t.delete(b.id));await idb('ink','readwrite',t=>t.delete(b.id));if(key===b.id){key='';pages=[]}showLib()}};
     lib.appendChild(d);
   });
 }
@@ -419,44 +419,15 @@ async function pull(){
     if(re){const t=main.scrollTop;build();main.scrollTop=t}else if(ch)els.forEach(el=>{if(el._r)drawInk(el)});
   }catch(_){}
 }
-async function download(b){
-  toast('در حال دانلود از فضای ابری…');
-  b.blob=await (await api('/books/'+b.id+'/file')).blob();b.synced=1;
-  await idb('books','readwrite',o=>o.put(b));
-}
-async function doUpload(b){
-  if(uping.has(b.id))return;uping.add(b.id);
-  try{
-    const{uploadId}=await (await api('/books/'+b.id+'/upload/start',{method:'POST',headers:JH,body:JSON.stringify({name:b.name,size:b.size,added:b.added})})).json();
-    const CH=8*1048576,n=Math.max(1,Math.ceil(b.blob.size/CH)),parts=[];
-    for(let i=0;i<n;i++){
-      parts.push(await (await api('/books/'+b.id+'/upload/'+uploadId+'/'+(i+1),{method:'PUT',body:b.blob.slice(i*CH,(i+1)*CH)})).json());
-      toast('آپلود «'+b.name+'» '+fa(Math.round((i+1)/n*100))+'٪');
-    }
-    await api('/books/'+b.id+'/upload/'+uploadId+'/complete',{method:'POST',headers:JH,body:JSON.stringify({parts})});
-    b.synced=1;await idb('books','readwrite',o=>o.put(b));toast('آپلود شد');
-  }catch(e){toast('آپلود «'+b.name+'» کامل نشد')}
-  uping.delete(b.id);if(document.body.classList.contains('lib'))showLib();
-}
-let uq=Promise.resolve();
-async function syncBooks(){
-  if(!cloud)return;
-  try{
-    const R=await jget('/books'),L=(await idb('books','readonly',o=>o.getAll()))||[],lm=new Map(L.map(b=>[b.id,b])),rm=new Set(R.map(r=>r.id));
-    for(const r of R){
-      const l=lm.get(r.id);
-      if(r.deleted){if(l){await idb('books','readwrite',o=>o.delete(r.id));await idb('ink','readwrite',o=>o.delete(r.id));if(key===r.id){key='';pages=[]}}continue}
-      if(!l)await idb('books','readwrite',o=>o.put({id:r.id,name:r.name,size:r.size,added:r.added,blob:null,synced:1}));
-    }
-    for(const b of L)if(b.blob&&!b.synced&&!rm.has(b.id))uq=uq.then(()=>doUpload(b));
-    if(document.body.classList.contains('lib'))showLib();
-  }catch(_){}
+async function fp(f){
+  const E=1048576,buf=await new Blob([String(f.size),f.slice(0,E),f.slice(Math.max(0,f.size-E))]).arrayBuffer();
+  return[...new Uint8Array(await crypto.subtle.digest('SHA-256',buf))].slice(0,16).map(x=>x.toString(16).padStart(2,'0')).join('');
 }
 async function detect(){
   try{await api('/books',{signal:AbortSignal.timeout(4000)});cloud=true}catch(_){cloud=false;return}
-  await syncBooks();pull();push();
+  pull();push();
 }
-document.addEventListener('visibilitychange',()=>{if(!document.hidden&&cloud){syncBooks();pull();push()}});
+document.addEventListener('visibilitychange',()=>{if(!document.hidden&&cloud){pull();push()}});
 addEventListener('online',detect);
 setInterval(()=>{if(!document.hidden&&cloud&&!document.body.classList.contains('lib')){push();pull()}},30000);
 refresh();

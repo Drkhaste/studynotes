@@ -1,4 +1,4 @@
-// Worker: فقط /api/* را اجرا می‌کند. بقیه مسیرها مستقیم از public/ سرو می‌شوند.
+// Worker: فقط /api/* را اجرا می‌کند. نوشته‌ها (stroke ها) توی D1 همگام می‌شوند. فایل PDF ها روی خود دستگاه‌ها می‌مانند.
 const J = (o, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'content-type': 'application/json' } });
 const ID = /^[\w-]{1,64}$/;
 
@@ -22,22 +22,14 @@ async function route(req, env, u) {
     return J(r.results);
   }
   if (!ID.test(id)) return J({ error: 'bad id' }, 400);
-  const key = 'b/' + id;
 
   if (!sub && m === 'DELETE') {
-    await env.BOOKS.delete(key);
     await env.DB.batch([
       env.DB.prepare('UPDATE books SET deleted=1,ready=0,updated=? WHERE id=?').bind(now, id),
       env.DB.prepare('DELETE FROM ink WHERE book=?').bind(id),
       env.DB.prepare('DELETE FROM meta WHERE book=?').bind(id),
     ]);
     return J({ ok: 1 });
-  }
-
-  if (sub === 'file' && m === 'GET') {
-    const o = await env.BOOKS.get(key);
-    if (!o) return J({ error: 'no file' }, 404);
-    return new Response(o.body, { headers: { 'content-type': 'application/pdf', 'content-length': String(o.size), etag: o.httpEtag } });
   }
 
   if (sub === 'ink' && m === 'GET') {
@@ -64,26 +56,6 @@ async function route(req, env, u) {
     return J({ now });
   }
 
-  if (sub === 'upload') {
-    // آپلود چندبخشی تا محدودیت ۱۰۰ مگ درخواست مشکل ایجاد نکند
-    if (m === 'POST' && s[4] === 'start') {
-      const b = await req.json();
-      const mp = await env.BOOKS.createMultipartUpload(key);
-      await env.DB.prepare('INSERT INTO books(id,name,size,added,deleted,ready,updated) VALUES(?,?,?,?,0,0,?) ON CONFLICT(id) DO UPDATE SET name=excluded.name,size=excluded.size,deleted=0,ready=0,updated=excluded.updated')
-        .bind(id, String(b.name || 'book.pdf').slice(0, 200), +b.size || 0, +b.added || now, now).run();
-      return J({ uploadId: mp.uploadId });
-    }
-    if (m === 'PUT' && s[4] && s[5]) {
-      const mp = env.BOOKS.resumeMultipartUpload(key, s[4]);
-      return J(await mp.uploadPart(+s[5], await req.arrayBuffer()));
-    }
-    if (m === 'POST' && s[4] && s[5] === 'complete') {
-      const { parts } = await req.json();
-      await env.BOOKS.resumeMultipartUpload(key, s[4]).complete(parts);
-      await env.DB.prepare('UPDATE books SET ready=1,updated=? WHERE id=?').bind(now, id).run();
-      return J({ ok: 1 });
-    }
-  }
   return J({ error: 'not found' }, 404);
 }
 
